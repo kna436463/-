@@ -15,7 +15,7 @@ async def main():
     
     dp = Dispatcher()
     dp.include_router(handlers.router)
-    
+    #Эта версия кода точно работает
     print("Бот для саморекламы успешно запущен!")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
