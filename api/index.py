@@ -4,21 +4,20 @@ import sys
 from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiohttp import web
-from dotenv import load_dotenv
 
-# Загружаем переменные окружения
+# Это НЕ загрузит .env на Vercel, но нужно для локального теста, если понадобится
+from dotenv import load_dotenv
 load_dotenv()
 
-# Добавляем корневую папку в путь, чтобы Vercel мог найти handlers.py
-# Это нужно, потому что Vercel запускает этот файл из папки /api
+# Добавляем корневую папку в путь
 sys.path.append('..')
 import handlers
 
-# --- Конфигурация ---
+# --- ИСПРАВЛЕННАЯ КОНФИГУРАЦИЯ ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-# Vercel автоматически предоставит эту переменную
 VERCEL_URL = os.getenv('VERCEL_URL')
-WEBHOOK_PATH = f'/api/{BOT_TOKEN}' # Путь должен совпадать с путем к файлу
+# Путь теперь простой и правильный
+WEBHOOK_PATH = "/api/index"
 WEBHOOK_URL = f"https://{VERCEL_URL}{WEBHOOK_PATH}"
 
 # --- Инициализация ---
@@ -26,29 +25,16 @@ bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher()
 dp.include_router(handlers.router)
 
-# --- Функции жизненного цикла ---
-async def on_startup(app):
-    logging.warning(f"Setting webhook on: {WEBHOOK_URL}")
-    await bot.set_webhook(WEBHOOK_URL)
-
-async def on_shutdown(app):
-    logging.warning("Deleting webhook")
-    await bot.delete_webhook()
-
-# --- Главный обработчик, которого ждет Vercel ---
+# --- Главный обработчик ---
 async def handle_webhook(request):
     try:
-        update_data = await request.json()
-        update = types.Update(**update_data)
+        update = types.Update(**(await request.json()))
         await dp.feed_update(bot=bot, update=update)
         return web.Response(status=200)
     except Exception as e:
-        logging.error(f"Error handling update: {e}")
+        logging.exception("Error processing update")
         return web.Response(status=500)
 
-# --- Создание веб-приложения, которое Vercel будет запускать ---
+# --- Создание приложения ---
 app = web.Application()
-app.router.add_post(f'/{BOT_TOKEN}', handle_webhook) # Конечная точка для Telegram
-
-# Vercel не поддерживает on_startup/on_shutdown, поэтому мы их не используем
-# Установка и удаление вебхука будет производиться вручную
+app.router.add_post(WEBHOOK_PATH, handle_webhook)
