@@ -1,47 +1,35 @@
 import os
 import sys
-import json
-from http.server import BaseHTTPRequestHandler
+from fastapi import FastAPI, Request, Response
 from aiogram import Bot, Dispatcher, types
 
 # Добавляем корневую папку в путь, чтобы Vercel нашел handlers.py
-sys.path.insert(0, os.path.abspath('..'))
+# Это стандартный и рабочий способ
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import handlers
 
 # --- Конфигурация ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# --- Глобальные экземпляры ---
+# --- Глобальные экземпляры (создаются один раз при "холодном старте") ---
 bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 dp.include_router(handlers.router)
+app = FastAPI()
 
-# --- Vercel Handler ---
-# Это стандартный обработчик, который Vercel ищет и запускает
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        # Получаем размер тела запроса
-        content_len = int(self.headers.get('Content-Length'))
-        # Читаем тело запроса
-        post_body = self.rfile.read(content_len)
-        
-        # Создаем объект Update
-        update_data = json.loads(post_body)
-        update = types.Update(**update_data)
-        
-        # Запускаем обработку
-        # loop = asyncio.get_event_loop()
-        # loop.run_until_complete(dp.feed_update(bot=bot, update=update))
-        
-        # Отправляем ответ, что все хорошо
-        self.send_response(200)
-        self.end_headers()
-        return
+# --- СТАТИЧНЫЙ, ПРЕДСКАЗУЕМЫЙ ПУТЬ ДЛЯ ВЕБХУКА ---
+# Telegram будет всегда стучаться сюда. Без токенов в URL.
+WEBHOOK_PATH = "/api/webhook"
 
-    def do_GET(self):
-        # Обработчик для "пульса"
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b"Bot is alive!")
-        return
+# --- Обработчики ---
+@app.post(WEBHOOK_PATH)
+async def bot_webhook(update: dict):
+    """Принимает обновление от Telegram и передает его в Dispatcher"""
+    telegram_update = types.Update(**update)
+    await dp.feed_update(bot=bot, update=telegram_update)
+    return Response(status_code=200)
+
+@app.get("/")
+def health_check():
+    """Проверка "пульса" - говорит, что бот жив"""
+    return {"status": "ok"}
