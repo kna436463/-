@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv  # <--- ДОБАВИТЬ ЭТУ СТРОКУ
+load_dotenv()  # <--- И ЭТУ СТРОКУ. ОНА ДОЛЖНА БЫТЬ ДО ОБЪЯВЛЕНИЯ BOT_TOKEN
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher

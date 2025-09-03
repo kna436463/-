@@ -1,6 +1,7 @@
+import os
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# --- Главное меню: твоя воронка продаж ---
+# --- Главное меню ---
 main_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Какие боты я делаю (Услуги и Цены)", callback_data="services")],
     [InlineKeyboardButton(text="Примеры моих работ", callback_data="portfolio")],
@@ -11,12 +12,17 @@ main_menu = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="✅ Заказать бесплатную консультацию", callback_data="contact_me")]
 ])
 
-# --- Кнопка "Назад" для удобной навигации ---
+# --- Кнопка "Назад" ---
 back_to_main_menu_button = InlineKeyboardButton(text="⬅️ Назад в главное меню", callback_data="to_main_menu")
 
-# --- Меню для связи с тобой ---
+# --- Меню для связи с тобой (УЛУЧШЕННАЯ ВЕРСИЯ) ---
+# 1. Получаем имя пользователя из переменной окружения.
+#    Если переменная не найдена, используется 'kurbannz' как запасной вариант.
+# --- Меню для связи с тобой (ФИНАЛЬНАЯ ВЕРСИЯ) ---
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "kurbannz")
+
+# Используем прямую ссылку tg://resolve, которая гарантированно открывает чат
 contact_menu = InlineKeyboardMarkup(inline_keyboard=[
-    # ВАЖНО: Замени "ТВОЙ_НИКНЕЙМ" на свой реальный ник в Telegram
-    [InlineKeyboardButton(text="Написать мне в Telegram", url="https://t.me/@kurbannz")],
+    [InlineKeyboardButton(text="Написать мне в Telegram", url=f"tg://resolve?domain={ADMIN_USERNAME}")],
     [back_to_main_menu_button]
 ])
